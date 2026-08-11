@@ -48,9 +48,21 @@ Status legend: `[ ]` not started, `[~]` in progress, `[x]` done.
       backtest (logreg, 2023/2024/2025): accuracy 0.581/0.581/0.559 vs
       baseline 0.555/0.533/0.537 — beats the home-favorite baseline in all
       three seasons.
-- [ ] **6. React frontend** — This Week table, Game Detail (feature breakdown),
-      Backtest/accuracy chart.
-- [ ] **7. Frontend tests + build** — component tests, `npm run build` verified.
+- [x] **6. React frontend** — Vite + React 19 + TypeScript. Three pages: This
+      Week (sortable table, season/week selectors), Game Detail (win prob +
+      feature-diff bars + raw season stats for both teams), Model Accuracy
+      (recharts bar chart of accuracy vs. baseline per season + full metrics
+      table). Verified visually with a headless-Chromium (Playwright) script
+      driving the real running app against real data — screenshots looked
+      right, zero console errors. One false alarm worth recording: a
+      Playwright `fullPage: true` screenshot taken immediately after
+      navigation raced the chart's own resize-triggered re-render and
+      captured a blank frame; the chart itself was always correct (confirmed
+      via direct SVG inspection and a manual resize test) — not an app bug,
+      just a screenshot-tool timing artifact.
+- [x] **7. Frontend tests + build** — 15 vitest + Testing Library tests
+      (components, all three pages with mocked API client), `npm run build`
+      and `tsc -b` both clean.
 - [ ] **8. Docker Compose** — db + api + frontend, one-command startup.
 - [ ] **9. README** — setup instructions, architecture, how to re-run
       ingest/train/backtest, screenshots.
