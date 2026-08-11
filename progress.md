@@ -15,6 +15,26 @@ for the original requirements.
 
 Status legend: `[ ]` not started, `[~]` in progress, `[x]` done.
 
+## Post-launch addition: keeping data current automatically
+
+After the initial build, added a `scheduler` service (`backend/ml/scheduler.py`)
+plus `backend/ml/season_config.py`. Two things this fixes:
+
+1. **Staleness**: originally `/ingest` and `/predict` were purely manual, per
+   spec's "out of scope: automation" — but that meant scores/predictions would
+   never update on their own. The scheduler runs ingest+predict once a day
+   (retrying every 5 min on failure instead of waiting a full day — mainly to
+   ride out the race against the `api` container's own first-boot bootstrap).
+   Training/backtesting are still manual on purpose — retraining on a schedule
+   was never asked for and predictions don't need it (see point 2).
+2. **A latent year-rollover bug**: `ingest.py`'s CLI defaults and
+   `bootstrap.py` had hardcoded season ranges (`2018-2025`/`2018-2026`) that
+   would have silently gone stale every year. Replaced with
+   `season_config.py` helpers computed from the current date, including a
+   Jan/Feb boundary case (games played in Jan/Feb belong to the *previous*
+   NFL season, not the calendar year) — covered by 6 new tests in
+   `test_season_config.py`. 25 backend tests passing total.
+
 ## Milestones
 
 - [x] **1. Data ingestion** — `backend/ml/ingest.py` pulls schedules + play-by-play

@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.db import Base, SessionLocal, engine
 from app.models import Game, SeasonStats, Team
+from ml.season_config import default_schedule_years, default_stats_years
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("ingest")
@@ -236,14 +237,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--stats-seasons",
         type=int,
         nargs="+",
-        default=list(range(2018, 2026)),
+        default=default_stats_years(),
         help="Seasons to compute season_stats for (needs completed games).",
     )
     parser.add_argument(
         "--schedule-seasons",
         type=int,
         nargs="+",
-        default=list(range(2018, 2027)),
+        default=default_schedule_years(),
         help="Seasons to load into the games table (may include upcoming/unplayed seasons).",
     )
     return parser.parse_args(argv)

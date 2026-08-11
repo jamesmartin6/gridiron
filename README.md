@@ -65,7 +65,13 @@ The game detail page shows exactly why the model favors a team — the same diff
 | API | FastAPI + SQLAlchemy 2.0 |
 | Database | PostgreSQL 16 |
 | Frontend | React 19, TypeScript, Vite, react-router, recharts |
-| Infra | Docker Compose (db + api + frontend) |
+| Infra | Docker Compose (db + api + scheduler + frontend) |
+
+## Staying current through the season
+
+Predictions only ever use a team's **prior completed season's** stats (see [How a prediction is made](#how-a-prediction-is-made)) — that's the whole point of the project, so a Tuesday prediction and a Sunday-morning prediction for the same matchup are identical by design. What *does* need to stay current is which games have been played and which upcoming weeks have predictions at all.
+
+The Docker Compose stack includes a `scheduler` service (`backend/ml/scheduler.py`) that handles this on its own: once a day it re-runs ingest (pulling fresh scores/schedule) and regenerates predictions for the current season. It retries every 5 minutes instead of waiting a full day if a refresh fails (e.g. racing the API container's first-boot bootstrap, or a transient upstream hiccup) — no manual intervention needed. Outside Docker, do the same thing with a cron job or scheduled task calling `python -m ml.ingest && python -m ml.predict --version logreg_v1 --season <year>`, or just re-run those commands yourself whenever you want fresh results.
 
 ## Quickstart (Docker)
 
@@ -80,7 +86,7 @@ That's it. On first boot, the API container automatically pulls the last several
 - Frontend: <http://localhost:5173>
 - API docs (Swagger): <http://localhost:8000/docs>
 
-To re-run any step manually (e.g. after a new season's games are played):
+A `scheduler` container keeps scores and predictions current automatically (see below) — ingest/predict don't need to be run by hand. Training and backtesting are still manual, since retraining on a schedule wasn't in scope; re-run them yourself after a season wraps up, or any time you want to force a refresh:
 
 ```bash
 docker compose exec api python -m ml.ingest

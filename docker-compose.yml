@@ -32,6 +32,20 @@ services:
     volumes:
       - model_artifacts:/app/ml/artifacts
 
+  scheduler:
+    build: ./backend
+    restart: unless-stopped
+    entrypoint: ["python", "-m", "ml.scheduler"]
+    environment:
+      DATABASE_URL: postgresql+psycopg2://gridiron:gridiron@db:5432/gridiron
+      MODEL_DIR: ml/artifacts
+      DEFAULT_MODEL_VERSION: logreg_v1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - model_artifacts:/app/ml/artifacts
+
   frontend:
     build:
       context: ./frontend

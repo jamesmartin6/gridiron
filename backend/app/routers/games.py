@@ -84,8 +84,9 @@ def trigger_ingest(
     """Admin/internal: pulls fresh data via nfl_data_py and refreshes
     teams, season_stats, and games. Synchronous — can take ~30s."""
     from ml.ingest import run_ingest
+    from ml.season_config import default_schedule_years, default_stats_years
 
-    stats_years = stats_seasons or list(range(2018, 2026))
-    schedule_years = schedule_seasons or list(range(2018, 2027))
+    stats_years = stats_seasons or default_stats_years()
+    schedule_years = schedule_seasons or default_schedule_years()
     summary = run_ingest(stats_years=stats_years, schedule_years=schedule_years)
     return IngestResponse(**summary)
