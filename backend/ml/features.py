@@ -46,10 +46,11 @@ def build_feature_frame(games: pd.DataFrame, season_stats: pd.DataFrame) -> pd.D
     both scores are known).
     """
     stats = season_stats[["team_id", "season", *STAT_COLUMNS]].copy()
-    stats["prior_season"] = stats["season"] + 1
+    # A stats row from `season` is the "prior season" for games played the
+    # following year, i.e. it applies as a feature to games in `season + 1`.
+    stats["applies_to_season"] = stats["season"] + 1
 
     df = games.copy()
-    df["prior_season"] = df["season"] - 1
 
     home_stats = stats.rename(columns={c: f"home_{c}" for c in STAT_COLUMNS})
     home_stats = home_stats.rename(columns={"team_id": "home_team"})
@@ -57,13 +58,15 @@ def build_feature_frame(games: pd.DataFrame, season_stats: pd.DataFrame) -> pd.D
     away_stats = away_stats.rename(columns={"team_id": "away_team"})
 
     df = df.merge(
-        home_stats[["home_team", "prior_season", *[f"home_{c}" for c in STAT_COLUMNS]]],
-        on=["home_team", "prior_season"],
+        home_stats[["home_team", "applies_to_season", *[f"home_{c}" for c in STAT_COLUMNS]]],
+        left_on=["home_team", "season"],
+        right_on=["home_team", "applies_to_season"],
         how="left",
     )
     df = df.merge(
-        away_stats[["away_team", "prior_season", *[f"away_{c}" for c in STAT_COLUMNS]]],
-        on=["away_team", "prior_season"],
+        away_stats[["away_team", "applies_to_season", *[f"away_{c}" for c in STAT_COLUMNS]]],
+        left_on=["away_team", "season"],
+        right_on=["away_team", "applies_to_season"],
         how="left",
     )
 

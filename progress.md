@@ -27,13 +27,27 @@ Status legend: `[ ]` not started, `[~]` in progress, `[x]` done.
       test season, trains only on strictly earlier seasons, predicts the test
       season using prior-season stats, computes accuracy/log_loss/brier vs a
       home-team-always baseline. Verified for 2023/2024/2025 (logreg beats
-      baseline in 2024/2025, essentially ties it in 2023 — xgboost underperforms
-      logreg on this small a feature set, which is a real and expected result on
-      ~700-1300 training rows, not a bug). Results written to `backtest_results`.
-- [ ] **4. FastAPI backend** — models/schemas/routers for teams, games,
-      predictions, backtest; `/ingest` and `/predict` admin endpoints.
-- [ ] **5. Backend tests** — pytest coverage for features, API endpoints, backtest
-      metrics.
+      baseline in all three seasons post-bugfix — see below; xgboost slightly
+      underperforms logreg on this small a feature set, which is a real and
+      expected result on ~1000-1600 training rows, not a bug). Results written
+      to `backtest_results`.
+- [x] **4. FastAPI backend** — models/schemas/routers for teams, games,
+      predictions, backtest; `/ingest` and `/predict` admin endpoints. All
+      endpoints manually verified against the real local Postgres instance.
+- [x] **5. Backend tests** — 19 pytest tests: feature engineering (pure unit
+      tests), full ML pipeline (train/backtest/predict against synthetic
+      DB-seeded data, no network dependency), API endpoints via `TestClient`
+      against a throwaway `gridiron_test` database. All passing.
+      **Caught a real bug**: the original `build_feature_frame` join was
+      off by one season in the wrong direction — it joined each game against
+      stats from *two* seasons prior instead of one (a season+1/season-1
+      double-shift in the merge keys), silently "working" on real data only
+      because it happened to produce a non-empty, plausible-looking result
+      starting from 2020 instead of 2019. Fixed in `ml/features.py`; all real
+      models/backtests/predictions were regenerated after the fix. Corrected
+      backtest (logreg, 2023/2024/2025): accuracy 0.581/0.581/0.559 vs
+      baseline 0.555/0.533/0.537 — beats the home-favorite baseline in all
+      three seasons.
 - [ ] **6. React frontend** — This Week table, Game Detail (feature breakdown),
       Backtest/accuracy chart.
 - [ ] **7. Frontend tests + build** — component tests, `npm run build` verified.
