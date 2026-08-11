@@ -3,13 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
-from app.models import Game, Prediction, SeasonStats
+from app.models import Game, Prediction, SeasonStats, WeeklyTeamStats
 from app.schemas import (
     FeatureBreakdown,
     GameDetailOut,
     GameOut,
     PredictResponse,
     SeasonStatsOut,
+    WeeklyTeamStatsOut,
 )
 
 router = APIRouter(tags=["predictions"])
@@ -31,27 +32,37 @@ def get_prediction(
 
     home_stats = db.get(SeasonStats, {"team_id": game.home_team, "season": stats_season})
     away_stats = db.get(SeasonStats, {"team_id": game.away_team, "season": stats_season})
+    home_current = db.get(
+        WeeklyTeamStats, {"team_id": game.home_team, "season": game.season, "week": game.week}
+    )
+    away_current = db.get(
+        WeeklyTeamStats, {"team_id": game.away_team, "season": game.season, "week": game.week}
+    )
 
     breakdown = None
     if home_stats is not None and away_stats is not None:
-        from ml.features import feature_breakdown
+        from ml.features import blend_team_stats, feature_breakdown
 
-        breakdown = feature_breakdown(
-            {
-                "epa_offense": home_stats.epa_offense,
-                "epa_defense": home_stats.epa_defense,
-                "turnover_margin": home_stats.turnover_margin,
-                "win_pct": home_stats.win_pct,
-                "yards_per_play": home_stats.yards_per_play,
-            },
-            {
-                "epa_offense": away_stats.epa_offense,
-                "epa_defense": away_stats.epa_defense,
-                "turnover_margin": away_stats.turnover_margin,
-                "win_pct": away_stats.win_pct,
-                "yards_per_play": away_stats.yards_per_play,
-            },
+        def _stat_dict(row) -> dict:
+            return {
+                "epa_offense": row.epa_offense,
+                "epa_defense": row.epa_defense,
+                "turnover_margin": row.turnover_margin,
+                "win_pct": row.win_pct,
+                "yards_per_play": row.yards_per_play,
+            }
+
+        home_blended = blend_team_stats(
+            _stat_dict(home_stats),
+            _stat_dict(home_current) if home_current else None,
+            home_current.games_played if home_current else 0,
         )
+        away_blended = blend_team_stats(
+            _stat_dict(away_stats),
+            _stat_dict(away_current) if away_current else None,
+            away_current.games_played if away_current else 0,
+        )
+        breakdown = feature_breakdown(home_blended, away_blended)
 
     prediction = db.get(Prediction, {"game_id": game_id, "model_version": version})
 
@@ -60,6 +71,8 @@ def get_prediction(
         home_stats=SeasonStatsOut.model_validate(home_stats) if home_stats else None,
         away_stats=SeasonStatsOut.model_validate(away_stats) if away_stats else None,
         stats_season=stats_season,
+        home_current_stats=WeeklyTeamStatsOut.model_validate(home_current) if home_current else None,
+        away_current_stats=WeeklyTeamStatsOut.model_validate(away_current) if away_current else None,
         feature_breakdown=FeatureBreakdown(**breakdown) if breakdown else None,
         prediction=prediction,
     )

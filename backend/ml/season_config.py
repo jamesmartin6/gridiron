@@ -28,6 +28,18 @@ def default_schedule_years(today: dt.date | None = None) -> list[int]:
     return list(range(DATA_START_YEAR, current_nfl_season(today) + 1))
 
 
+def default_weekly_stats_years(today: dt.date | None = None) -> list[int]:
+    """Seasons to compute in-season (week-by-week, as-of) rolling stats for.
+    A season's weekly stats only ever depend on that same season's earlier
+    games (never a prior season), so unlike default_stats_years this only
+    needs to cover seasons that are actually trained/backtested/predicted on
+    — which starts two years into the data window, same as
+    default_train_seasons — but unlike that one, it MUST include the
+    current season: that's what lets this season's results-so-far influence
+    this season's predictions."""
+    return list(range(DATA_START_YEAR + 2, current_nfl_season(today) + 1))
+
+
 def default_train_seasons(today: dt.date | None = None) -> list[int]:
     """Seasons with usable prior-season stats for training. Starts two years
     into the data window rather than one, to steer clear of edge cases from

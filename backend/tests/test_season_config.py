@@ -6,6 +6,7 @@ from ml.season_config import (
     default_schedule_years,
     default_stats_years,
     default_train_seasons,
+    default_weekly_stats_years,
 )
 
 
@@ -32,6 +33,7 @@ def test_default_ranges_are_consistent_with_current_season():
     assert default_schedule_years(today) == list(range(2018, 2027))
     assert default_train_seasons(today) == list(range(2020, 2026))
     assert default_backtest_seasons(today) == [2023, 2024, 2025]
+    assert default_weekly_stats_years(today) == list(range(2020, 2027))
 
 
 def test_default_ranges_shift_correctly_in_january():
@@ -40,3 +42,4 @@ def test_default_ranges_shift_correctly_in_january():
     assert default_stats_years(today) == list(range(2018, 2026))
     assert default_schedule_years(today) == list(range(2018, 2027))
     assert default_backtest_seasons(today) == [2023, 2024, 2025]
+    assert default_weekly_stats_years(today) == list(range(2020, 2027))

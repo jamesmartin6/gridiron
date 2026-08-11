@@ -32,7 +32,8 @@ logger = logging.getLogger("backtest")
 def _load_all_features() -> pd.DataFrame:
     games = pd.read_sql("SELECT * FROM games", engine)
     stats = pd.read_sql("SELECT * FROM season_stats", engine)
-    return build_feature_frame(games, stats)
+    weekly_stats = pd.read_sql("SELECT * FROM weekly_team_stats", engine)
+    return build_feature_frame(games, stats, weekly_stats)
 
 
 def run_backtest_for_season(

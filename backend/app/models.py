@@ -31,6 +31,31 @@ class SeasonStats(Base):
     team: Mapped["Team"] = relationship(back_populates="season_stats")
 
 
+class WeeklyTeamStats(Base):
+    """A team's cumulative stats from its games strictly BEFORE `week` in
+    `season` (i.e. "as of the start of the week") — not in the original
+    spec's schema. Added to let in-season results influence predictions:
+    features.py blends these with the prior season's full-season stats,
+    shifting weight toward current-season form as games_played grows.
+    Week 1 of every season has games_played=0 and null stats by
+    construction, which makes the blend reduce to pure prior-season stats
+    exactly like before this table existed."""
+
+    __tablename__ = "weekly_team_stats"
+
+    team_id: Mapped[str] = mapped_column(ForeignKey("teams.team_id"), primary_key=True)
+    season: Mapped[int] = mapped_column(primary_key=True)
+    week: Mapped[int] = mapped_column(primary_key=True)
+    games_played: Mapped[int] = mapped_column(nullable=False, default=0)
+    points_for: Mapped[float | None] = mapped_column(Numeric)
+    points_against: Mapped[float | None] = mapped_column(Numeric)
+    epa_offense: Mapped[float | None] = mapped_column(Numeric)
+    epa_defense: Mapped[float | None] = mapped_column(Numeric)
+    turnover_margin: Mapped[float | None] = mapped_column(Numeric)
+    yards_per_play: Mapped[float | None] = mapped_column(Numeric)
+    win_pct: Mapped[float | None] = mapped_column(Numeric)
+
+
 class Game(Base):
     __tablename__ = "games"
 

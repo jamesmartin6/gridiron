@@ -26,6 +26,22 @@ class SeasonStatsOut(BaseModel):
     win_pct: float | None
 
 
+class WeeklyTeamStatsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    team_id: str
+    season: int
+    week: int
+    games_played: int
+    points_for: float | None
+    points_against: float | None
+    epa_offense: float | None
+    epa_defense: float | None
+    turnover_margin: float | None
+    yards_per_play: float | None
+    win_pct: float | None
+
+
 class PredictionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,6 +77,8 @@ class GameDetailOut(BaseModel):
     home_stats: SeasonStatsOut | None
     away_stats: SeasonStatsOut | None
     stats_season: int
+    home_current_stats: WeeklyTeamStatsOut | None = None
+    away_current_stats: WeeklyTeamStatsOut | None = None
     feature_breakdown: FeatureBreakdown | None
     prediction: PredictionOut | None
 
@@ -83,6 +101,7 @@ class IngestResponse(BaseModel):
     teams: int
     games: int
     season_stats: int
+    weekly_team_stats: int
 
 
 class PredictResponse(BaseModel):

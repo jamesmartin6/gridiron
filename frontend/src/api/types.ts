@@ -15,6 +15,20 @@ export interface SeasonStats {
   win_pct: number | null;
 }
 
+export interface WeeklyTeamStats {
+  team_id: string;
+  season: number;
+  week: number;
+  games_played: number;
+  points_for: number | null;
+  points_against: number | null;
+  epa_offense: number | null;
+  epa_defense: number | null;
+  turnover_margin: number | null;
+  yards_per_play: number | null;
+  win_pct: number | null;
+}
+
 export interface Prediction {
   model_version: string;
   home_win_prob: number;
@@ -46,6 +60,8 @@ export interface GameDetail {
   home_stats: SeasonStats | null;
   away_stats: SeasonStats | null;
   stats_season: number;
+  home_current_stats: WeeklyTeamStats | null;
+  away_current_stats: WeeklyTeamStats | null;
   feature_breakdown: FeatureBreakdown | null;
   prediction: Prediction | null;
 }

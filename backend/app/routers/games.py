@@ -80,13 +80,22 @@ def list_games(
 def trigger_ingest(
     stats_seasons: list[int] | None = Query(default=None),
     schedule_seasons: list[int] | None = Query(default=None),
+    weekly_stats_seasons: list[int] | None = Query(default=None),
 ) -> IngestResponse:
     """Admin/internal: pulls fresh data via nfl_data_py and refreshes
-    teams, season_stats, and games. Synchronous — can take ~30s."""
+    teams, season_stats, games, and weekly_team_stats. Synchronous — can
+    take a couple of minutes (weekly_team_stats is the slow part)."""
     from ml.ingest import run_ingest
-    from ml.season_config import default_schedule_years, default_stats_years
+    from ml.season_config import (
+        default_schedule_years,
+        default_stats_years,
+        default_weekly_stats_years,
+    )
 
     stats_years = stats_seasons or default_stats_years()
     schedule_years = schedule_seasons or default_schedule_years()
-    summary = run_ingest(stats_years=stats_years, schedule_years=schedule_years)
+    weekly_years = weekly_stats_seasons or default_weekly_stats_years()
+    summary = run_ingest(
+        stats_years=stats_years, schedule_years=schedule_years, weekly_stats_years=weekly_years
+    )
     return IngestResponse(**summary)

@@ -32,7 +32,8 @@ MODEL_TYPES = ("logreg", "xgboost")
 def load_training_frame(seasons: list[int]) -> pd.DataFrame:
     games = pd.read_sql("SELECT * FROM games", engine)
     stats = pd.read_sql("SELECT * FROM season_stats", engine)
-    feat = build_feature_frame(games, stats)
+    weekly_stats = pd.read_sql("SELECT * FROM weekly_team_stats", engine)
+    feat = build_feature_frame(games, stats, weekly_stats)
     feat = feat[feat["season"].isin(seasons)]
     feat = feat.dropna(subset=[LABEL_COLUMN])
     return feat

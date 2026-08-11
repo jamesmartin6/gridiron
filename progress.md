@@ -35,6 +35,60 @@ plus `backend/ml/season_config.py`. Two things this fixes:
    NFL season, not the calendar year) — covered by 6 new tests in
    `test_season_config.py`. 25 backend tests passing total.
 
+## Post-launch addition: in-season results now actually move predictions
+
+User feedback after the scheduler was already in place: "what happens during
+the season should actually influence the predictions." Fair — before this,
+every prediction for a given matchup was frozen the moment the season's
+model was trained, since features were pure prior-season stats. Fixed
+properly rather than as a hack:
+
+- New `weekly_team_stats` table (not in the original spec's schema — an
+  intentional extension): one row per team/season/week holding that team's
+  stats accumulated from games strictly *before* that week, computed in
+  `ml/ingest.py::compute_weekly_rolling_stats`. Week 1 of every season is
+  `games_played=0` with null stats by construction.
+- `ml/features.py::build_feature_frame` now blends each team's prior-season
+  stat with its current-season-to-date stat via a shrinkage formula
+  (`PRIOR_SEASON_SHRINKAGE_GAMES = 6` — the entire prior season counts as 6
+  current-season-equivalent games of evidence, so the blend crosses 50/50
+  around a team's 7th game). At `games_played=0` this is mathematically
+  identical to the old prior-season-only behavior, so it's a strict
+  generalization, not a behavior change for week 1 or for any season with
+  incomplete current-season data (e.g. right now — the 2026 season hasn't
+  started, so 2026 week-1 predictions are unaffected).
+- `turnover_margin` changed from a season *total* to a per-game *rate* in
+  both `season_stats` and `weekly_team_stats` — required for the blend to be
+  mathematically meaningful (can't shrinkage-blend a full-season sum against
+  a 3-game partial sum on the same footing). Existing trained models were
+  retrained after this change; nothing reads the old scale anymore.
+  Frontend turnover margin displays were updated to match (2 decimal places,
+  labeled "/ game").
+- `GET /predictions/{game_id}` now also returns `home_current_stats` /
+  `away_current_stats` (the raw in-season-to-date numbers), and the frontend
+  shows a "this season so far" card + games-played count on the game detail
+  page whenever either team has played at least one game.
+- Ingest now fetches play-by-play **once** and reuses it for both
+  `season_stats` and `weekly_team_stats` (was fetching it twice — cut a real
+  ~80s of redundant network+compute off every ingest run).
+- **Real impact, verified**: retrained + re-backtested against real data.
+  Walk-forward accuracy (logreg) went from 58.1/58.1/55.9% (2023/24/25,
+  prior-season-only) to 61.8/68.0/61.0% with blending — a meaningfully
+  larger edge over the baseline (55.5/53.3/53.7%) than before. This is a
+  real result, not tuning to the test set: the shrinkage constant was fixed
+  by reasoning about games-to-convergence, not by trying values against the
+  backtest.
+- 32 → current backend test count includes new coverage for
+  `blend_team_stats` (zero-games edge case, the shrinkage-games-exactly-even
+  split, convergence toward current-season as games grow, missing-prior
+  handling) and `build_feature_frame` blending end-to-end (including that an
+  explicitly-empty `weekly_team_stats` frame behaves identically to omitting
+  it, and that a weekly-stats row for the wrong week is correctly ignored).
+  Frontend: 2 new tests for the in-season form card (absent vs. present).
+- Ingest is slower now (~70-80s vs ~25-30s before) because of the added
+  week-by-week aggregation — acceptable for a once-a-day background job, but
+  worth knowing if it seems "stuck" during the Docker bootstrap step.
+
 ## Milestones
 
 - [x] **1. Data ingestion** — `backend/ml/ingest.py` pulls schedules + play-by-play

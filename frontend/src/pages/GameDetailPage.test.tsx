@@ -43,6 +43,8 @@ const DETAIL: GameDetail = {
     win_pct: 0.4,
   },
   stats_season: 2025,
+  home_current_stats: null,
+  away_current_stats: null,
   feature_breakdown: {
     epa_offense_diff: 0.15,
     epa_defense_diff: -0.07,
@@ -85,5 +87,39 @@ describe("GameDetailPage", () => {
     await waitFor(() => expect(screen.getByText("2025 season stats")).toBeInTheDocument());
     expect(screen.getByText("70%")).toBeInTheDocument();
     expect(screen.getByText("40%")).toBeInTheDocument();
+  });
+
+  it("does not render an in-season form card when no games have been played yet", async () => {
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByText("68.0%")).toBeInTheDocument());
+    expect(screen.queryByText(/season so far/)).not.toBeInTheDocument();
+  });
+
+  it("renders an in-season form card once games have been played this season", async () => {
+    vi.mocked(client.getPrediction).mockResolvedValue({
+      ...DETAIL,
+      home_current_stats: {
+        team_id: "AAA",
+        season: 2026,
+        week: 6,
+        games_played: 5,
+        points_for: 150,
+        points_against: 90,
+        epa_offense: 0.2,
+        epa_defense: -0.1,
+        turnover_margin: 1.2,
+        yards_per_play: 6.0,
+        win_pct: 0.8,
+      },
+      away_current_stats: null,
+    });
+
+    renderDetail();
+
+    await waitFor(() => expect(screen.getByText("2026 season so far")).toBeInTheDocument());
+    expect(screen.getByText("AAA (5g)")).toBeInTheDocument();
+    expect(screen.getByText("BBB (0g)")).toBeInTheDocument();
+    expect(screen.getByText("80%")).toBeInTheDocument();
   });
 });

@@ -13,7 +13,7 @@ const DIFF_SPECS: {
   { key: "epa_offense_diff", label: "Offense EPA/play", clamp: 0.3, format: (v) => v.toFixed(3) },
   { key: "epa_defense_diff", label: "Defense EPA/play allowed", clamp: 0.3, format: (v) => v.toFixed(3) },
   { key: "win_pct_diff", label: "Win %", clamp: 1, format: (v) => `${(v * 100).toFixed(0)}pp` },
-  { key: "turnover_margin_diff", label: "Turnover margin", clamp: 15, format: (v) => v.toFixed(0) },
+  { key: "turnover_margin_diff", label: "Turnover margin / game", clamp: 1.5, format: (v) => v.toFixed(2) },
   { key: "yards_per_play_diff", label: "Yards / play", clamp: 2, format: (v) => v.toFixed(2) },
 ];
 
@@ -28,9 +28,21 @@ export function GameDetailPage() {
   if (error) return <p className="status error">Couldn't load this game: {error}</p>;
   if (!data) return null;
 
-  const { game, feature_breakdown, prediction, home_stats, away_stats, stats_season } = data;
+  const {
+    game,
+    feature_breakdown,
+    prediction,
+    home_stats,
+    away_stats,
+    stats_season,
+    home_current_stats,
+    away_current_stats,
+  } = data;
   const played = game.home_score !== null && game.away_score !== null;
   const homeWon = played && game.home_score! > game.away_score!;
+  const homeGamesPlayed = home_current_stats?.games_played ?? 0;
+  const awayGamesPlayed = away_current_stats?.games_played ?? 0;
+  const hasInSeasonForm = homeGamesPlayed > 0 || awayGamesPlayed > 0;
 
   return (
     <div>
@@ -83,8 +95,12 @@ export function GameDetailPage() {
           <div className="page-header">
             <h2 style={{ fontSize: 16 }}>Why the model likes {game.home_team}</h2>
             <p>
-              {game.home_team} minus {game.away_team}, using each team's {stats_season} season
-              stats. Green favors {game.home_team}, red favors {game.away_team}.
+              {game.home_team} minus {game.away_team}, blending each team's {stats_season} season
+              stats with this season's results so far
+              {hasInSeasonForm
+                ? ` (${game.home_team}: ${homeGamesPlayed} game${homeGamesPlayed === 1 ? "" : "s"} played, ${game.away_team}: ${awayGamesPlayed})`
+                : " — no games played yet this season, so this is pure prior-season stats"}
+              . Green favors {game.home_team}, red favors {game.away_team}.
             </p>
           </div>
           {DIFF_SPECS.map((spec) => (
@@ -102,6 +118,38 @@ export function GameDetailPage() {
           <p className="status">
             No {stats_season} season stats for one or both teams — feature breakdown unavailable.
           </p>
+        </div>
+      )}
+
+      {hasInSeasonForm && (
+        <div className="card">
+          <div className="page-header">
+            <h2 style={{ fontSize: 16 }}>{game.season} season so far</h2>
+            <p>
+              Stats through the game before this one — this is the in-season signal blended into
+              the prediction above.
+            </p>
+          </div>
+          <table className="stats-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>
+                  {game.home_team} ({homeGamesPlayed}g)
+                </th>
+                <th>
+                  {game.away_team} ({awayGamesPlayed}g)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <StatRow label="Win %" home={home_current_stats?.win_pct} away={away_current_stats?.win_pct} fmt={(v) => `${(v * 100).toFixed(0)}%`} />
+              <StatRow label="Offense EPA/play" home={home_current_stats?.epa_offense} away={away_current_stats?.epa_offense} fmt={(v) => v.toFixed(3)} />
+              <StatRow label="Defense EPA/play allowed" home={home_current_stats?.epa_defense} away={away_current_stats?.epa_defense} fmt={(v) => v.toFixed(3)} />
+              <StatRow label="Turnover margin / game" home={home_current_stats?.turnover_margin} away={away_current_stats?.turnover_margin} fmt={(v) => v.toFixed(2)} />
+              <StatRow label="Yards / play" home={home_current_stats?.yards_per_play} away={away_current_stats?.yards_per_play} fmt={(v) => v.toFixed(2)} />
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -124,7 +172,7 @@ export function GameDetailPage() {
               <StatRow label="Points against" home={home_stats?.points_against} away={away_stats?.points_against} />
               <StatRow label="Offense EPA/play" home={home_stats?.epa_offense} away={away_stats?.epa_offense} fmt={(v) => v.toFixed(3)} />
               <StatRow label="Defense EPA/play allowed" home={home_stats?.epa_defense} away={away_stats?.epa_defense} fmt={(v) => v.toFixed(3)} />
-              <StatRow label="Turnover margin" home={home_stats?.turnover_margin} away={away_stats?.turnover_margin} />
+              <StatRow label="Turnover margin / game" home={home_stats?.turnover_margin} away={away_stats?.turnover_margin} fmt={(v) => v.toFixed(2)} />
               <StatRow label="Yards / play" home={home_stats?.yards_per_play} away={away_stats?.yards_per_play} fmt={(v) => v.toFixed(2)} />
             </tbody>
           </table>

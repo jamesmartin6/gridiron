@@ -32,9 +32,12 @@ def load_model(version: str, model_dir: str):
 
 
 def predict_games(
-    model, games: pd.DataFrame, season_stats: pd.DataFrame
+    model,
+    games: pd.DataFrame,
+    season_stats: pd.DataFrame,
+    weekly_team_stats: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
-    feat = build_feature_frame(games, season_stats)
+    feat = build_feature_frame(games, season_stats, weekly_team_stats)
     if feat.empty:
         return feat.assign(home_win_prob=pd.Series(dtype=float))
     probs = model.predict_proba(feat[FEATURE_COLUMNS])[:, 1]
@@ -55,8 +58,9 @@ def run_predict(
         params["week"] = week
     games = pd.read_sql(games_query, engine, params=params)
     stats = pd.read_sql("SELECT * FROM season_stats", engine)
+    weekly_stats = pd.read_sql("SELECT * FROM weekly_team_stats", engine)
 
-    result = predict_games(model, games, stats)
+    result = predict_games(model, games, stats, weekly_stats)
     if result.empty:
         logger.warning("No games with available prior-season stats for season=%s week=%s", season, week)
         return 0

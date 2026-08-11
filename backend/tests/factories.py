@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.models import Game, SeasonStats, Team
+from app.models import Game, SeasonStats, Team, WeeklyTeamStats
 
 TEAM_IDS = ["AAA", "BBB", "CCC", "DDD"]
 # Deliberately uneven strength so features carry real signal.
@@ -65,6 +65,35 @@ def seed_multi_season_data(db: Session) -> None:
                         away_score=away_score,
                     )
                 )
+    db.commit()
+
+
+def add_weekly_team_stats(
+    db: Session,
+    team_id: str,
+    season: int,
+    week: int,
+    games_played: int,
+    **stat_overrides,
+) -> None:
+    """Seed a single in-season "as of week" row. Defaults every stat to a
+    value matching a team with STRENGTH ~0.9 (well above any TEAM_IDS
+    strength in this module), so tests can seed a strong in-season form for
+    an otherwise-weak team and check that it moves the blended prediction,
+    without having to spell out every stat column each time."""
+    row = {
+        "points_for": 420,
+        "points_against": 260,
+        "epa_offense": 0.16,
+        "epa_defense": -0.12,
+        "turnover_margin": 4.0,
+        "yards_per_play": 6.4,
+        "win_pct": 0.9,
+    }
+    row.update(stat_overrides)
+    db.merge(
+        WeeklyTeamStats(team_id=team_id, season=season, week=week, games_played=games_played, **row)
+    )
     db.commit()
 
 
