@@ -63,7 +63,19 @@ Status legend: `[ ]` not started, `[~]` in progress, `[x]` done.
 - [x] **7. Frontend tests + build** — 15 vitest + Testing Library tests
       (components, all three pages with mocked API client), `npm run build`
       and `tsc -b` both clean.
-- [ ] **8. Docker Compose** — db + api + frontend, one-command startup.
+- [x] **8. Docker Compose** — db (postgres:16-alpine, healthchecked) + api +
+      frontend (nginx serving the Vite build). `backend/ml/bootstrap.py` runs
+      automatically on API container start: if `season_stats` is empty it
+      runs ingest → train → backtest → predict once (idempotent — skips
+      instantly once data exists), so `docker compose up --build` alone is a
+      genuine one-command path to a fully working app, not just an empty
+      shell needing manual setup. Verified the entire bootstrap flow
+      (ingest/train/backtest/predict end-to-end from a truly empty database)
+      against the real local Postgres. **Not container-tested** — no Docker
+      available in this sandbox (see Environment notes below); Dockerfiles
+      and compose YAML are syntax-validated and path-checked but the actual
+      `docker compose up --build` has not been run. Do that first if picking
+      this up with Docker available, and fix anything that breaks.
 - [ ] **9. README** — setup instructions, architecture, how to re-run
       ingest/train/backtest, screenshots.
 - [ ] **10. Final verification + polish** — full pipeline run end-to-end, clean

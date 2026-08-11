@@ -1,3 +1,9 @@
+# Note: nfl_data_py==0.3.3 is intentionally NOT listed here. Its own
+# metadata pins numpy<2 and pandas<2, but pandas 1.5.x has no Python 3.12
+# wheel and fails to build from source. It runs fine against the modern
+# pandas/numpy pinned below in practice. Install it separately with
+# `pip install nfl_data_py==0.3.3 --no-deps` AFTER this file (see
+# backend/Dockerfile and README) so pip doesn't try to downgrade pandas/numpy.
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 sqlalchemy==2.0.36
